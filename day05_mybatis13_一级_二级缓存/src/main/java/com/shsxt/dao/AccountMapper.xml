@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <mapper namespace="com.shsxt.dao.AccountMapper">
+  	
+  	<cache eviction="FIFO"  
+		flushInterval="60000" 
+		size="512"  
+		readOnly="true"/> <!--只读 -->
+  	
+  	<sql id="sql_account">
+  		a.id as id,aname,type,money,remark,create_time as createTime,
+  		update_time as updateTime,user_id as userId
+  	</sql>
+  	
+  	
+  	<!-- 查询账户信息的同时，查询对应用户信息    resultType-->
+ 	<select id="queryAccountUserResultTypeByAid" parameterType="int" resultType="com.shsxt.dto.AccountDto">
+ 		select
+ 		<include refid="sql_account"/>,u.userName as userName,u.userPwd as userPwd
+ 		from account a left join user u on a.user_id=u.id
+ 		where a.id=#{id}
+ 	</select>
+	
+	
+	<resultMap type="account" id="map_account_user">
+		<!-- 账户映射 处理 -->
+		<id column="id" property="id" /> <!-- 唯一标识一行记录 账户主键id -->
+		<result column="aname" property="aname"/>
+		<result column="type" property="type"/>
+		<result column="remark" property="remark"/>
+		<result column="money" property="money" />
+		<result column="user_id" property="userId"/>
+		<result column="create_time" property="createTime"/>
+		<result column="update_time" property="updateTime"/>
+		<!-- 一对一关联 -->
+		<association property="user" javaType="user">
+			<id column="user_id" property="id" />  <!-- 唯一标识用户信息记录 外键 -->
+			<result column="userName" property="userName"/>
+			<result column="userPwd" property="userPwd"/>
+		</association>
+
+	</resultMap>
+	
+	
+	
+	<select id="queryAccountUserResultMapById" parameterType="int" resultMap="map_account_user">
+		select
+		 a.*, u.userName,u.userPwd
+		from account a left join user u on a.user_id=u.id
+		where a.id=#{id}
+	</select>
+	
+	
+	
+	<resultMap type="account" id="map_account_user_payIn"  extends="map_account_user">
+		<!-- 一对多 映射 -->
+		<collection property="payIns" ofType="payIn"><!-- property  list 属性名 ofType list内元素类型 -->
+			<id column="pid" property="pid" /> <!-- 唯一指定收入记录  收入表主键 -->
+			<result column="pname" property="pname"/>
+			<result column="pmoney" property="pmoney"/>
+		</collection>
+		
+	
+	
+	</resultMap>
+	
+	<select id="queryAccountUserPayInResultMap" parameterType="int" resultMap="map_account_user_payIn">
+		select
+		 a.*, u.userName,u.userPwd,pi.id as pid,pi.name as pname,pi.money as pmoney
+		from account a left join user u on a.user_id=u.id
+		left join pay_in pi on a.id=pi.aid
+		where a.id=#{id}
+	</select>
+	
+  </mapper>
